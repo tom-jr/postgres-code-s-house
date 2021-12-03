@@ -291,8 +291,270 @@ se não utilizarmos o where todos os campos são modificados da tabela alterada.
    pada deletar uma ou mais rows de uma table
 
 delete from mesas where id = 2;
- 
 
 
+
+      Functions para poupar esforços
+
+
+ são um conjunto de procedimentos escritos em SQL que são armazenados no banco de dados afim de executar 
+uma determinada função. Auxiliam na proddutividade do administrador do Banco de dados.
+   Exemplo de uma function que recebe como parametro um id de funcionario e depos realiza uma consulta de 
+   funcionario, retornando assim a concatenação de nome com situacao 
+
+
+   create or replace function 
+   retorna_nome_funcionario(func_id int)
+   returns text as
+   $$ 
+   declare
+   nome text;
+   situacao text;
+
+   begin
+   select funcionario_nome, funcionario_situacao 
+    into nome, situacao
+   from funcionarios
+   where id = func_id;
+      if situacao = 'A' then
+      return nome || ' Usuario Ativo';
+      else
+      return nome || ' Usuario Inativo';
+      end if;
+   end
+ $$
+   language plpgsql;
+
+      $$ -> usados paara limitar o corpo da função, assim o postgres entende que tudo que esta dentro do 
+      $$ $$   é parte do body função criada.
+
+      entre cada $ voce pode inserir uam string. $inicio$  $fim$
+
+      Declare -> Utilizado para informa as declarações de variaveis que receberam valores
+                 dos resultados das querys. O campo se encerra assim que o begin é iniciado
+
+      language plpgsql -> é a declarações da linguagem que escrevemos a função. a linguagem padrao do Postgresql
+
+      if e else -> usada para fluxo de desvio dependendo dos resultados das querys realizadas durante a execução da function
+                   if var 'valorConddição' then
+                   return || 'Um resultado';
+                   else
+                   return || 'outro resultado';
+
+
+
+create or replace function 
+   retorna_nome_funcionario(func_id int)
+   returns text as
+   $$ 
+   declare
+   nome text;
+   situacao text;
+
+   begin
+   select funcionario_nome, funcionario_situacao 
+    into nome, situacao
+   from funcionarios
+   where id = func_id;
+      if situacao = 'A' then
+      return nome || ' Usuario Ativo';
+      elsif situacao = 'I' then
+      return nome || ' Usuario Inativo';
+      elsif situacao is null then
+      return nome || ' Usuário Sem status';
+      else
+      return 'Usuário com status diferente de A e I';
+      end if;
+   end
+ $$
+   language plpgsql;
+
+
+
+   create or replace function rt_valor_commissao(func_id int)
+   return real as
+   $$
+   declare
+   valor_comisao real;
+   begin
+   select funcionario_comissao into valor_comisao from funcionarios
+   where id = func_id;
+
+   return funcionario_comissao;
+   end
+   $$
+   language plpgsql;
+
+
+create or replace function 
+calc_comissao(data_timestamp_init,data_time_stamp_fim)
+returns void as
+$$
+total_comissao real := 0;
+porc_comissao  real := 0;
+
+reg record;
+cr_porce CURSOR (func_id int) IS
+select rt_valor_comissao(func_id);
+begin
+
+for reg in(
+select vendas.id id,
+funcionario_id,
+venda_total
+from vendas
+where data_criacao >= data_ini
+and data_criacao <= data_fim
+and venda_situacao = 'A')loop
+
+open cr_porce(reg.funcionario_id);
+fetch cr_porce into porc_comissao;
+close cr_porce;
+total_comissao := (reg.venda_total *
+porc_comissao)/100;
+insert into comissoes(
+funcionario_id,comissao_valor,
+comissao_situacao,
+data_criacao,
+data_atualizacao)
+values(reg.funcionario_id,
+total_comissao,
+'A',
+now(),
+now());
+update vendas set venda_situacao = 'C'
+where id = reg.id;
+total_comissao := 0;
+porc_comissao := 0;
+end loop;
+end
+$$
+language plpgsql;
+
+
+
+
+
+Operadores Logicos
+
+AND
+Descrição
+Utilizamos quando queremos incluir duas ou mais condições em nossa
+operação. Os registros recuperados em uma declaração que une duas
+71condições com este operador deverão suprir as duas ou mais condições
+
+OR
+ Utilizamos quando queremos combinar duas ou mais condições em nossa
+operação. Os registros recuperados em uma declaração que une duas
+condições com este operador deverão suprir uma das duas condições
+NOT
+ Utilizamos quando não queremos que uma das condições seja cumprida. Os
+registros recuperados em uma declaração que exclui uma condição não
+
+insert into produtos (produto_codigo,
+produto_nome,
+produto_valor,
+produto_situacao,
+data_criacao,
+data_atualizacao)
+values ('2832',
+'SUCO DE LIMÃO',
+15,
+'C',
+'02/02/2016',
+'02/02/2016');
+
+select * from produtos where produto_situacao = 'A' and produto_situacao = 'C';
+
+select * from produtos where produto_situacao = 'A' or produto_situacao = 'C';
+
+select * from produtos where produto_situacao = 'A' and produto_situacao = 'C';
+
+select * from produtos where produto_situacao = 'A';
+
+select * from produtos where produto_situacao = 'A' or produto_situacao ='C' and data_criacao = '02/02/2016';
+
+
+
+
+            Operadores de comparação
+
+
+<        Menor
+>        Maior
+<=       Menor Igual
+>=       Maior Igual
+=        Igual 
+
+
+select vendas.funcionario_id from vendas 
+   where vendas.data_criacao >= 'data_init' and < 'data_fin' and vendas.venda_situacao = 'A';
+
+
+select vendas.funcionario_id, vendas.venda_total from vendas 
+where vendas.data_criacao >= '01/01/2016'
+and
+      vendas.data_criacao < '02/02/2016'
+and   vendas.venda_situacao = 'A';
+
+
+
+
+
+         Operadores e funções matematicas
+
+
++     adição            2 + 2 = 5
+-     subtração         2 - 3 = 1
+*     multiplicação     2 * 3 = 6
+/     divisão           4 / 2 = 2
+%     modulo            5 % 4 = 1
+^     exponencial       2.0 ^ 3.0 = 8 
+!     Fatorial          5!    = 120
+!!    fatorial          !!5   = 120
+@     valor abs         @ -5.2 = 5
+
+
+         Funções de texto
+
+   Concatenar string 
+
+select funcionarios.funcionario_codigo || funcionarios.funcionario_nome 
+from funcionarios 
+   where funcionarios.id = 1;
+
+   restaurante=# select funcionarios.funcionario_codigo ||' -- '|| funcionarios.funcionario_nome 
+from funcionarios 
+   where funcionarios.id = 1;
+
+
+ Comando para contar o numero de caracteres de um campo
+
+ select char_length(funcionarios.funcionario_nome) from funcionarios where funcionarios.id = 1
+
+
+      Da um upper case nos strings
+   select upper(funcionarios.funcionario_nome) from funcionarios;
+
+   inciar as Palavras em upperCase.
+   select initCap('antonio carlos');
+
  
+  Lower Case.
+  select lower('ANTONIO');
+
+
+   realizar replace, sunstituição ecaracters de acordo com o parametro e os campos da string
+
+   select overlay(funcionarios.funcionario_nome placing '******' from 3 for 5) from funcionarios where funcionarios.id =1;
+
+
+ Pesquisar a posição de determinada string em um registro
+
+ select position('ius' in funcionarios.funcionario_nome) from funcionarios where funcionarios.id = 1;
+
+
+
+         Funções Datas e Horas
+
 
