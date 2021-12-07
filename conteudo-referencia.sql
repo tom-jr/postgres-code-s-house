@@ -558,3 +558,51 @@ from funcionarios
          Funções Datas e Horas
 
 
+   Formato de datas no Brasil  dia/mes/ano 
+ A maiori dos SGBD usam por padrao Mes/dia/ano ou Ano/mes/dia 
+
+ Para descubrir o formato que esta o nosso banco de dados utilizzamos o comando
+ show datestyle;
+
+ Para mudar para o datastyle que desejamas utilizamos o comando
+ alter database restaurante set datestyle to iso, dmy;
+
+ função do Postgres para verificar idade;
+  age(timestamp 'd/m/y');
+  retorna a idade correta
+
+
+No livro fica exemplo varias funções de data/hora.
+
+
+
+      Funções Agregadoras
+
+ Comando para realizar contagens de registro de tabelas
+
+   select count(uncionarios.id) from funcionarios; -- contara os funcionarios utilizando o id como base
+
+ 
+ select sum(vendas.venda_total) from vendas; --soma os valores de um todos os campos especificado na tabela
+
+
+            Calculando media dos valores com avg();
+
+   select avg(produtos.produto_valor) from produtos;
+
+   Valore maximo e minimo
+
+select max(produtos.produto_valor), min(produtos.produto_valor) from produtos;
+
+
+
+Agrupando regstro com o  Group by
+
+O group by auxilia em uma busca onde se deseja buscar elemonstos que reicidem na tabela
+
+
+select produto_id , sum(iten_total) from itens_vendas group by produto_id;
+--seleciona os id_produto de itens vendaas, agrupados por produtos_id  ira retorna apenas os que tem reincidencia
+
+
+
