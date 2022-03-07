@@ -1,0 +1,175 @@
+  1.Instalação
+   site do postgresql tem todo o tutorial referente a instalação.
+
+ comando_ [ pg_lsclusters ]   lista cluster da maquina
+
+ comando_ [ pg_createcluster -d /home/postgres/name_cluster {versão} {name_cluster} ] criar cluster 
+    parametro_ [ -d ] indicar diretorio , [--start] da start quando termina criação
+    args_ {versão} versão do cluster criado, {name_cluster} nome dado cluster  
+
+ comando_ [ su - postgres ]  entra no usuario postgres
+
+ comando_ [ psql ]  logado com usuario postgres, entra no banco de dados postgres
+
+
+
+        Arquivo postgresql.conf
+
+
+ arq_ postgresql.conf  arquivo de configurações de servidor do postgres, encontra-se diretorio de pg_data. Ao estar dentro do psql é possivel acessar a view
+ pg_settings, que tem uma 'copia' das configurações do postgresql.conf. 
+
+ Pro padrão a localização fica no diretorio PGDATA.
+ Na instalação pelo repositorio o arquivo fica no diretorio
+  diretorio_ /etc/postgresql/{versão}/{nome_cluster}/postgresql.conf 
+
+ comando_banco [ SELECT name, setting FROM pg_settings; ] Seleciona a view pg_settings, uma "copia" das configurações do postgresql.conf
+
+ comando_banco [ SHOW [parametro] ]  mostra o setting de um parametro de configuração
+ 
+ OBS: reiniciar o cluster apos alterar o arquivo
+
+        COnfigurações presentes no postgresql.conf
+ -LISTEN_ADRESSES: Endereços de IPs TCP/IP das interfaces que i servidor PostgreSQL vai escutar(liberar conexões)
+
+ -PORT: a port TCP que i servidor PostgreSQL vai ouvir. default 5432
+
+ -MAX_CONNECTIONS: numero maximo de conexões permitidos no servidor PostgreSQL
+
+ -SUPERUSER_RESERVED_CONNECTIONS: numero de conexões reservadas ao banco de dados de superusuarios
+
+ -AUTHENTICATION_TIMEOUT: tempo maximo em segundo para cliente conseguir uma conexão com o servidor.
+
+ -PASSWORD_ENCRYPTION: Algoritimos de encriptografia das senhas dos novos usuarios criados no banco de dados 
+
+ -SSL:  habilita a conexão por SSL, somente se o PostgreSQL foi compilado com SSL.
+
+        Configurações de memoria
+
+ -SHARED_BUFERRES: Tamanho da memoria compartilhada do servidor para cache/buffer de tabelas, indeces e demais relações. 
+
+ -WORK_MEN: tamanho da memoria para operações de agrupamento e ordenação (ORDER BY, DISTINCT, MERGE JOINS)
+
+ -MAINTENACE_WORK_MEM: tamanho da memoria para operações como VACUUM,INDEX,ALTER TABLE
+
+
+
+
+
+
+ arquivo_ pg_hba.conf
+  O arquivo pg_hba.conf
+  Aruqivo responsavel pelo controle de autenticação  dos usuarios no servidor PostgreSQL.
+  formato do arquivo::
+    local       database    user    auth-method [auth-options] 
+    host        database    user    address     auth-method     [auth-options]
+    hostssl     database    user    address     auth-method     [auth-options]
+    hostnossl   database    user    address     auth-method     [auth-options]
+
+    host        database    user    IP-address  IP-MASk     auth-method     [auth-options]
+    hostssl     database    user    IP-address  IP-MASk     auth-method     [auth-options]
+    hostnossl   database    user    IP-address  IP-MASk     auth-method     [auth-options]
+
+
+
+    Métodos de autenticação
+
+ -TRUST: conexão sem requisição de senha 
+ -REJECT: rejeitar conexões 
+ -MD5: criptografia md5
+ -PASSWORD: senha sem criptografia
+ -GSS
+ -SSPI
+ -KRB5
+ -IDENT: Utiliza o usuario do sistema operacional, via ident server
+ -PEER: utiliza o usuario do sistema opoeracional do cliente.
+ -LDPA
+ -RAUDIUS
+ -CERT: autenticação via certifica SSL do cliente
+ -PAM: O usuario precisa esta no banco de dados
+
+ Exemplo
+ #Type          DATABASE        USER            ADRESS          METHOD
+local           all             all                             peer
+
+#IPV4 local conections
+host            all             all             127.0.0.1/32    md5
+
+#Não fazer em produção
+host            all             all             0.0.0.0/0       md5
+
+#Ipv6 local  conections
+host            all             all             :::1/128        md5
+
+
+
+
+        Arquivo pg_ident.conf
+  arquivo_ pg_ident.conf
+
+  Arquivo responsavel por mapear os usuarios dos sistema operacional com os usuarios do banco de dados. Localizado no diretorio de dados  PGDATA.
+
+  A opção ident deve ser utilziada no arquivopg_hba.conf
+
+  Exemplo 
+
+#MAPNAME            SYSTEM_USERNAME             PG_USERNAME
+diretoria           daniel                      pg_diretoria
+comercial           tiburcio                    pg_comercial
+comercial           valdeci                     pg_comercial
+
+
+
+        Comandos adminstrativos
+
+  Ubuntu
+  comando_ [ pg_dropcluster {versão} {name_cluster} ] apagar o cluster
+
+  comando_ [ pg_ctlCluster {versão} {name_cluster} --{comando} ] start, stop, status, reset o cluster especificado
+
+    Cluster 
+ Coleção de banco de dados que compartilham das mesmas configurações.
+ 
+ comando_ [ sudo systemctl {comando} postgresql@{versão}-{name_cluster} ]  start, stop, restart. forma recomendada pelo sistema do postgres para comandos 
+administrativos.
+ 
+  Acessar cluster no pgadmin 4
+ 1. Liberar acesso ao cluster em postgresql.conf 
+ 2.Liberar acesso ao cluster para o usuario do banco de dados em pg_hba.conf
+ 3.criar e editar usuario
+
+  Com o comando [pg_lsclusters] verificamos o Data directory do cluster, assim podendo abrir o arquivo postgresql.conf nos sistemas operacionais. Mas no Ubuntu
+o arquivo estara no diretorio
+  diretorio_ /etc/postgresql/{versão}/{nome_cluster}/postgresql.conf
+
+  Com o arquivo aberto vamos ate a sessão de 
+
+    CONNECTIONS AND AUTHENTICATIONS 
+     no parametro LISTEN_ADRESSESn descomenta o mesmo e certifique de que o valor esta aceitando o local host. Exemplo:
+
+     listen_addresses = 'localhost' ou adicione '*'{nunca em prod}          # what IP address(es) to listen on;
+
+     localhost tem acesso ao cluster (OKAY)
+
+     comando_ [ psql -h {host(default = 'localhost')} -p {porta(default = 5432)} -U {usuario(default = 'postgres')} ] comando para entrar no postgres shell
+
+    
+ Então segue adicionando uma senha para o usuario.
+    entrando no shell do postgresql com psql executar o seguinte comando
+  comando_ [ ALTER USER postgres WITH PASSWORD 'password;' ]
+
+  proximo passo é editar o arquivo pg_hba.conf para que possa ser cobrada a autenticação.
+
+ mesmo diretorio de postgresql.conf /etc/postgresql/{versão}/{name_cluster}/pg_hba.conf 
+
+ por default a adiministração de conexão local do  postgres é do tipo PEER, significa se ao rodar o comando psql com usuar X para o banco de dados X ele entra
+Vamos mudar essa conexão para MD5.
+
+ Agora é possivel acessar o cluster no pgadmin4 
+
+ No pg admin va em Serve com menu do botão direito em cima Selecione create>Serve
+
+ adicione o nome do serve 
+ depois va em connections e configure hostname, porta, database e password.
+ pronto.
+
